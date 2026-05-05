@@ -115,6 +115,14 @@ export function Dashboard({ onResetComplete }: DashboardProps) {
     }, {});
   }, [knowledgeState]);
 
+  const conceptNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const concept of filteredConcepts) {
+      map.set(concept.id, concept.name);
+    }
+    return map;
+  }, [filteredConcepts]);
+
   const selectedConcept = useMemo(
     () =>
       filteredConcepts.find((concept) => concept.id === effectiveSelectedConceptId) ?? null,
@@ -237,9 +245,15 @@ export function Dashboard({ onResetComplete }: DashboardProps) {
         item.target === effectiveSelectedConceptId;
       return {
         id: `${item.source}-${item.target}`,
+        type: "prerequisite" as const,
         source: item.source,
         target: item.target,
+        selectable: true,
         animated: isHighlighted,
+        data: {
+          sourceName: conceptNameById.get(item.source) ?? "Prerequisite",
+          targetName: conceptNameById.get(item.target) ?? "Concept",
+        },
         markerEnd: {
           type: MarkerType.ArrowClosed,
           width: 16,
@@ -252,11 +266,10 @@ export function Dashboard({ onResetComplete }: DashboardProps) {
           opacity: hasSelection && !isHighlighted ? 0.45 : 0.98,
           transition: "all 180ms ease",
         },
-        interactionWidth: 28,
-        zIndex: 1,
+        zIndex: isHighlighted ? 2 : 0,
       };
     });
-  }, [effectiveSelectedConceptId, visibleRelationships]);
+  }, [conceptNameById, effectiveSelectedConceptId, visibleRelationships]);
 
   const selectedKnowledge = useMemo(
     () =>
@@ -464,6 +477,10 @@ export function Dashboard({ onResetComplete }: DashboardProps) {
                 Red {"<"}40% (priority)
               </span>
               <span className="text-slate-500">· Dimmed = not on path to selected concept</span>
+              <span className="basis-full text-slate-500">
+                Edges: hover for prerequisite → dependent label. Click selects the dependent; Shift+click
+                selects the prerequisite.
+              </span>
             </div>
           </div>
 
@@ -479,6 +496,13 @@ export function Dashboard({ onResetComplete }: DashboardProps) {
                 setSelectedConceptId(conceptId);
                 handleEvent(conceptId, "view");
                 setAssessmentOpen(true);
+              }}
+              onEdgeClick={({ sourceId, targetId, shiftKey }) => {
+                const next = shiftKey ? sourceId : targetId;
+                if (visibleConceptIds.has(next)) {
+                  setSelectedConceptId(next);
+                  handleEvent(next, "view");
+                }
               }}
               onNodesChange={handleNodesChange}
             />

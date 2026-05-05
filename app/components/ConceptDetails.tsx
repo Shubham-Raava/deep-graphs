@@ -200,6 +200,10 @@ export function ConceptDetails({
             <h4 className="mb-1 font-medium text-slate-200">Graph legend</h4>
             <p className="text-slate-300">Node = concept</p>
             <p className="text-slate-300">Edge = prerequisite (must come before)</p>
+            <p className="mt-1 text-xs leading-snug text-slate-400">
+              Hover an edge to see who it connects; click opens the dependent concept, Shift+click
+              opens the prerequisite.
+            </p>
             <p className="mt-2 text-xs font-medium text-slate-200">Node fill (mastery)</p>
             <ul className="mt-1 space-y-1 text-xs text-slate-400">
               <li className="flex items-center gap-2">

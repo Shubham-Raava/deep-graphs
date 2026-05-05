@@ -14,6 +14,9 @@ import {
 } from "@xyflow/react";
 import { useLayoutEffect, useMemo } from "react";
 import "@xyflow/react/dist/style.css";
+import { PrerequisiteEdge } from "./PrerequisiteEdge";
+
+const edgeTypes = { prerequisite: PrerequisiteEdge };
 
 type GraphCanvasProps = {
   nodes: Node[];
@@ -21,6 +24,8 @@ type GraphCanvasProps = {
   onNodeClick: (conceptId: string) => void;
   /** Optional: e.g. open assessment without hunting the side panel. */
   onNodeDoubleClick?: (conceptId: string) => void;
+  /** Click an edge: typically selects the dependent concept; Shift+click selects the prerequisite. */
+  onEdgeClick?: (payload: { sourceId: string; targetId: string; shiftKey: boolean }) => void;
   onNodesChange: OnNodesChange<Node>;
 };
 
@@ -29,6 +34,7 @@ function GraphCanvasInner({
   edges,
   onNodeClick,
   onNodeDoubleClick,
+  onEdgeClick,
   onNodesChange,
 }: GraphCanvasProps) {
   const { fitView } = useReactFlow();
@@ -68,12 +74,26 @@ function GraphCanvasInner({
       <ReactFlow
         nodes={nodes}
         edges={edges}
+        edgeTypes={edgeTypes}
         onNodesChange={onNodesChange}
         onNodeClick={(_, node) => onNodeClick(node.id)}
         onNodeDoubleClick={
           onNodeDoubleClick ? (_, node) => onNodeDoubleClick(node.id) : undefined
         }
-        defaultEdgeOptions={{ type: "smoothstep" }}
+        onEdgeClick={
+          onEdgeClick
+            ? (_, edge) =>
+                onEdgeClick({
+                  sourceId: edge.source,
+                  targetId: edge.target,
+                  shiftKey: _.shiftKey,
+                })
+            : undefined
+        }
+        defaultEdgeOptions={{
+          type: "prerequisite",
+          interactionWidth: 34,
+        }}
         fitView
         minZoom={0.1}
         maxZoom={2.2}
