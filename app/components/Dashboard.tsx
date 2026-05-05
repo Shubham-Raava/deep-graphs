@@ -19,6 +19,8 @@ import {
 } from "../lib/graphLearningMetrics";
 import { useKnowledgeState } from "../hooks/useKnowledgeState";
 import type { Concept } from "../types/knowledgeGraph";
+import type { TutorContextSnapshot } from "../types/aiTutor";
+import { TutorChatPanel } from "./TutorChatPanel";
 
 type DashboardProps = {
   onResetComplete: () => void;
@@ -376,6 +378,75 @@ export function Dashboard({ onResetComplete }: DashboardProps) {
     return `${weakMessage} For ${selectedConcept.name}, ${prereqMessage}`;
   }, [prerequisites.length, selectedConcept, weakConcept, weakPrerequisites]);
 
+  const tutorChatContext = useMemo((): TutorContextSnapshot => {
+    const merged = filteredConcepts.map((c) => {
+      const s = knowledgeState.find((k) => k.concept_id === c.id);
+      return {
+        conceptId: c.id,
+        name: c.name,
+        mastery: s?.mastery_score ?? 0.1,
+        confusion: s?.confusion_score ?? 0.2,
+        exposure: s?.exposure_score ?? 0.3,
+      };
+    });
+    const sorted = [...merged].sort((a, b) => a.mastery - b.mastery);
+    const bottom = sorted.slice(0, 20);
+    const selId = effectiveSelectedConceptId;
+    let scoreRows = bottom.slice(0, 24);
+    if (selId) {
+      const selectedRow = merged.find((r) => r.conceptId === selId);
+      if (selectedRow) {
+        const rest = bottom.filter((r) => r.conceptId !== selId);
+        scoreRows = [selectedRow, ...rest].slice(0, 24);
+      }
+    }
+
+    return {
+      profile: { userClass: profile.userClass, userSubject: profile.userSubject },
+      selectedConcept: selectedConcept
+        ? {
+            id: selectedConcept.id,
+            name: selectedConcept.name,
+            chapter: selectedConcept.chapter,
+            subject: selectedConcept.subject,
+            description: selectedConcept.description,
+            exploreSnippet: selectedConcept.exploreContent.slice(0, 700),
+          }
+        : null,
+      prerequisiteNames: prerequisites.map((p) => p.name),
+      dependentNames: dependents.map((d) => d.name),
+      coverage: {
+        engagedPercent: coverageMetrics.engagedPercent,
+        engagedCount: coverageMetrics.engagedCount,
+        totalInScope: coverageMetrics.totalInScope,
+        neverEngagedCount: coverageMetrics.neverEngagedCount,
+        blockingPrerequisiteNames: coverageMetrics.blockingPrerequisiteNames,
+      },
+      nextBest: nextBest ? { name: nextBest.concept.name, reason: nextBest.reason } : null,
+      scoreRows,
+      recentEvents: [...learningEvents]
+        .sort((a, b) => b.timestamp - a.timestamp)
+        .slice(0, 12)
+        .map((e) => ({
+          conceptId: e.concept_id,
+          event_type: e.event_type,
+          at: e.timestamp,
+        })),
+    };
+  }, [
+    coverageMetrics,
+    dependents,
+    effectiveSelectedConceptId,
+    filteredConcepts,
+    knowledgeState,
+    learningEvents,
+    nextBest,
+    prerequisites,
+    profile.userClass,
+    profile.userSubject,
+    selectedConcept,
+  ]);
+
   const handleNodesChange: OnNodesChange<Node> = (changes) => {
     setNodePositions((current) => {
       const next = { ...current };
@@ -669,6 +740,8 @@ export function Dashboard({ onResetComplete }: DashboardProps) {
         concept={selectedConcept}
         onAttemptRecorded={(payload) => handleQuizAttempt(payload)}
       />
+
+      <TutorChatPanel context={tutorChatContext} />
     </main>
   );
 }
