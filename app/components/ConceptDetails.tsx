@@ -32,7 +32,7 @@ export function ConceptDetails({
   onOpenAssessment,
 }: ConceptDetailsProps) {
   return (
-    <aside className="border-t border-white/10 bg-[#11142a] p-4 lg:border-t-0 lg:border-l">
+    <aside className="border-t border-white/10 bg-[#11142a] p-3 sm:p-4 lg:border-t-0 lg:border-l">
       <h2 className="mb-3 text-lg font-semibold text-white">Concept Details</h2>
 
       {!concept ? (
@@ -59,7 +59,7 @@ export function ConceptDetails({
           <button
             type="button"
             onClick={() => onOpenAssessment(concept.id)}
-            className="w-full rounded-md border-2 border-indigo-400/60 bg-gradient-to-r from-indigo-500/25 to-violet-600/20 px-3 py-3 text-left text-sm font-semibold text-indigo-50 shadow-md shadow-indigo-950/30 transition hover:border-indigo-300 hover:from-indigo-500/35 hover:to-violet-600/30"
+            className="min-h-[48px] w-full rounded-md border-2 border-indigo-400/60 bg-gradient-to-r from-indigo-500/25 to-violet-600/20 px-3 py-3 text-left text-sm font-semibold text-indigo-50 shadow-md shadow-indigo-950/30 transition hover:border-indigo-300 hover:from-indigo-500/35 hover:to-violet-600/30 active:opacity-90"
           >
             ★ Start assessment — Gemini quiz + personalized note after submit
           </button>
@@ -148,21 +148,21 @@ export function ConceptDetails({
                 <button
                   type="button"
                   onClick={() => onMarkUnderstood(concept.id)}
-                  className="rounded-md border border-emerald-400/40 bg-emerald-500/15 px-3 py-2 text-left text-xs text-emerald-100 transition hover:bg-emerald-500/25"
+                  className="min-h-[44px] rounded-md border border-emerald-400/40 bg-emerald-500/15 px-3 py-2.5 text-left text-xs text-emerald-100 transition hover:bg-emerald-500/25 active:bg-emerald-500/20"
                 >
                   Mark as Understood (+0.1 mastery)
                 </button>
                 <button
                   type="button"
                   onClick={() => onMarkConfusing(concept.id)}
-                  className="rounded-md border border-rose-400/40 bg-rose-500/15 px-3 py-2 text-left text-xs text-rose-100 transition hover:bg-rose-500/25"
+                  className="min-h-[44px] rounded-md border border-rose-400/40 bg-rose-500/15 px-3 py-2.5 text-left text-xs text-rose-100 transition hover:bg-rose-500/25 active:bg-rose-500/20"
                 >
                   Mark as Confusing (+0.1 confusion)
                 </button>
                 <button
                   type="button"
                   onClick={() => onViewedConcept(concept.id)}
-                  className="rounded-md border border-violet-300/40 bg-violet-500/15 px-3 py-2 text-left text-xs text-violet-100 transition hover:bg-violet-500/25"
+                  className="min-h-[44px] rounded-md border border-violet-300/40 bg-violet-500/15 px-3 py-2.5 text-left text-xs text-violet-100 transition hover:bg-violet-500/25 active:bg-violet-500/20"
                 >
                   Viewed Concept (+0.1 exposure)
                 </button>

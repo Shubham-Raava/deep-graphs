@@ -69,7 +69,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#090d1a] px-4 py-10 text-slate-100">
+    <main className="flex min-h-dvh items-center justify-center bg-[#090d1a] px-3 py-6 text-slate-100 sm:px-4 sm:py-10">
       <section className="w-full max-w-2xl rounded-2xl border border-white/10 bg-[#11142a] p-6 shadow-[0_20px_60px_rgba(2,6,23,0.45)] sm:p-8">
         <div className="mb-6">
           <div className="mb-2 flex items-center justify-between text-sm text-slate-300">

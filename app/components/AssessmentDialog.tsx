@@ -330,7 +330,7 @@ export function AssessmentDialog({
 
   return (
     <div
-      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[200] flex items-stretch justify-center bg-black/70 p-0 backdrop-blur-sm sm:items-center sm:p-4"
       role="presentation"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) handleClose();
@@ -340,10 +340,10 @@ export function AssessmentDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="assessment-dialog-title"
-        className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-xl border border-violet-500/30 bg-[#0f1428] shadow-2xl shadow-violet-950/60"
+        className="flex max-h-[100dvh] w-full max-w-lg flex-col overflow-hidden border border-violet-500/30 bg-[#0f1428] shadow-2xl shadow-violet-950/60 sm:max-h-[90dvh] sm:rounded-xl"
         onMouseDown={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between border-b border-white/10 px-4 py-3">
+        <div className="flex items-start justify-between border-b border-white/10 px-3 py-3 pt-[max(0.75rem,env(safe-area-inset-top,0px))] sm:px-4">
           <div>
             <h2 id="assessment-dialog-title" className="text-base font-semibold text-white">
               AI assessment (Gemini)
@@ -364,7 +364,7 @@ export function AssessmentDialog({
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-3 py-3 sm:px-4">
           {phase === "loading" && (
             <p className="text-sm text-slate-300">Generating 6 tailored questions…</p>
           )}
@@ -393,7 +393,7 @@ export function AssessmentDialog({
                     {q.options.map((opt) => (
                       <label
                         key={opt}
-                        className={`flex cursor-pointer gap-2 rounded-md border px-2 py-2 text-xs transition ${
+                        className={`flex min-h-[44px] cursor-pointer items-center gap-2 rounded-md border px-2 py-2 text-xs transition sm:min-h-0 ${
                           answers[q.id] === opt
                             ? "border-violet-400 bg-violet-500/20 text-violet-50"
                             : "border-white/10 bg-[#12162c] text-slate-200 hover:border-violet-400/40"
@@ -488,11 +488,11 @@ export function AssessmentDialog({
           )}
         </div>
 
-        <div className="flex shrink-0 gap-2 border-t border-white/10 px-4 py-3">
+        <div className="flex shrink-0 gap-2 border-t border-white/10 px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] sm:px-4 sm:pb-3">
           <button
             type="button"
             onClick={handleClose}
-            className="flex-1 rounded-md border border-white/15 px-3 py-2 text-xs text-slate-200 hover:bg-white/5"
+            className="min-h-[44px] flex-1 rounded-md border border-white/15 px-3 py-2 text-xs text-slate-200 hover:bg-white/5 sm:min-h-0"
           >
             Close
           </button>
@@ -501,7 +501,7 @@ export function AssessmentDialog({
               type="button"
               disabled={!allAnswered}
               onClick={() => void submitAssessment()}
-              className="flex-1 rounded-md bg-violet-500 px-3 py-2 text-xs font-medium text-white transition hover:bg-violet-400 disabled:cursor-not-allowed disabled:bg-violet-500/40"
+              className="min-h-[44px] flex-1 rounded-md bg-violet-500 px-3 py-2 text-xs font-medium text-white transition hover:bg-violet-400 disabled:cursor-not-allowed disabled:bg-violet-500/40 sm:min-h-0"
             >
               Submit answers
             </button>
@@ -510,7 +510,7 @@ export function AssessmentDialog({
             <button
               type="button"
               onClick={() => newAttempt()}
-              className="flex-1 rounded-md border border-violet-400/40 px-3 py-2 text-xs text-violet-100 hover:bg-violet-500/15"
+              className="min-h-[44px] flex-1 rounded-md border border-violet-400/40 px-3 py-2 text-xs text-violet-100 hover:bg-violet-500/15 sm:min-h-0"
             >
               New attempt
             </button>

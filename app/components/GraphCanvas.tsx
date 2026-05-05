@@ -19,6 +19,8 @@ import { PrerequisiteEdge } from "./PrerequisiteEdge";
 const edgeTypes = { prerequisite: PrerequisiteEdge };
 
 type GraphCanvasProps = {
+  /** Narrow viewports: hide minimap, slightly friendlier padding for touch. */
+  compact?: boolean;
   nodes: Node[];
   edges: Edge[];
   onNodeClick: (conceptId: string) => void;
@@ -30,6 +32,7 @@ type GraphCanvasProps = {
 };
 
 function GraphCanvasInner({
+  compact = false,
   nodes,
   edges,
   onNodeClick,
@@ -54,7 +57,7 @@ function GraphCanvasInner({
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
         fitView({
-          padding: 0.35,
+          padding: compact ? 0.12 : 0.35,
           duration: 280,
           includeHiddenNodes: true,
         });
@@ -67,7 +70,7 @@ function GraphCanvasInner({
       cancelAnimationFrame(frame);
       window.removeEventListener("resize", scheduleFit);
     };
-  }, [fitView, nodes.length, signature]);
+  }, [compact, fitView, nodes.length, signature]);
 
   return (
     <div className="relative h-full min-h-0 w-full overflow-hidden rounded-none bg-[#0b1020] lg:rounded-md">
@@ -95,8 +98,8 @@ function GraphCanvasInner({
           interactionWidth: 34,
         }}
         fitView
-        minZoom={0.1}
-        maxZoom={2.2}
+        minZoom={compact ? 0.05 : 0.1}
+        maxZoom={2.4}
         nodesDraggable
         nodesConnectable={false}
         elementsSelectable
@@ -109,12 +112,14 @@ function GraphCanvasInner({
         attributionPosition="bottom-left"
         className="h-full w-full text-white"
       >
-        <MiniMap
-          className="!bg-[#11142a]"
-          nodeColor="#8b5cf6"
-          maskColor="rgba(5, 7, 16, 0.65)"
-        />
-        <Controls className="!border-white/15 !bg-[#11142a]" />
+        {!compact && (
+          <MiniMap
+            className="!bg-[#11142a]"
+            nodeColor="#8b5cf6"
+            maskColor="rgba(5, 7, 16, 0.65)"
+          />
+        )}
+        <Controls className="!m-1 !scale-90 !border-white/15 !bg-[#11142a] sm:!m-2 sm:!scale-100" />
         <Background
           variant={BackgroundVariant.Dots}
           gap={22}
@@ -133,3 +138,4 @@ export function GraphCanvas(props: GraphCanvasProps) {
     </ReactFlowProvider>
   );
 }
+

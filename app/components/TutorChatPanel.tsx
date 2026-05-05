@@ -61,28 +61,39 @@ export function TutorChatPanel({ context }: TutorChatPanelProps) {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        className="pointer-events-auto fixed bottom-4 right-4 z-[60] flex h-14 w-14 items-center justify-center rounded-full border border-violet-400/50 bg-gradient-to-br from-violet-600 to-indigo-700 text-xl shadow-lg shadow-violet-950/50 transition hover:scale-105 hover:border-violet-300"
-        title={open ? "Close tutor chat" : "Open AI tutor (uses your scores)"}
-        aria-expanded={open}
-        aria-label="Toggle tutor chat"
-      >
-        {open ? "✕" : "💬"}
-      </button>
+      {!open && (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="pointer-events-auto fixed bottom-[max(1rem,env(safe-area-inset-bottom,0px))] right-[max(1rem,env(safe-area-inset-right,0px))] z-[60] flex h-14 w-14 items-center justify-center rounded-full border border-violet-400/50 bg-gradient-to-br from-violet-600 to-indigo-700 text-xl shadow-lg shadow-violet-950/50 transition active:scale-95 lg:bottom-4 lg:right-4"
+          title="Open AI tutor (uses your scores)"
+          aria-label="Open tutor chat"
+        >
+          💬
+        </button>
+      )}
 
       {open && (
         <div
-          className="pointer-events-auto fixed bottom-[4.5rem] right-4 z-[60] flex h-[min(520px,calc(100vh-8rem))] w-[min(400px,calc(100vw-2rem))] flex-col overflow-hidden rounded-xl border border-white/15 bg-[#0f1228] shadow-2xl shadow-black/50"
+          className="pointer-events-auto fixed inset-x-0 bottom-0 top-0 z-[60] flex flex-col overflow-hidden bg-[#0f1228] pt-[env(safe-area-inset-top,0px)] sm:inset-x-3 sm:bottom-[max(1rem,env(safe-area-inset-bottom,0px))] sm:top-[min(12vh,5rem)] sm:max-h-[min(560px,calc(100dvh-2rem))] sm:rounded-xl sm:pt-0 md:left-auto md:right-4 md:top-auto md:h-[min(520px,calc(100dvh-6rem))] md:w-[min(400px,calc(100vw-2rem))] md:rounded-xl md:border md:border-white/15 md:shadow-2xl"
           role="dialog"
           aria-label="Tutor chat"
         >
-          <div className="border-b border-white/10 bg-[#161a34] px-3 py-2">
-            <p className="text-sm font-semibold text-violet-100">AI tutor</p>
-            <p className="text-[10px] leading-snug text-slate-500">
-              Uses your mastery snapshot on each send. Not a substitute for your teacher.
-            </p>
+          <div className="flex shrink-0 items-start justify-between gap-2 border-b border-white/10 bg-[#161a34] px-3 py-2">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-violet-100">AI tutor</p>
+              <p className="text-[10px] leading-snug text-slate-500">
+                Uses your mastery snapshot on each send. Not a substitute for your teacher.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="min-h-[44px] min-w-[44px] shrink-0 rounded-lg text-lg text-slate-400 hover:bg-white/10 hover:text-white"
+              aria-label="Close tutor chat"
+            >
+              ✕
+            </button>
           </div>
 
           <div ref={listRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3">
@@ -117,7 +128,7 @@ export function TutorChatPanel({ context }: TutorChatPanelProps) {
             )}
           </div>
 
-          <div className="border-t border-white/10 p-2">
+          <div className="border-t border-white/10 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom,0px))]">
             <div className="flex gap-2">
               <textarea
                 value={input}
