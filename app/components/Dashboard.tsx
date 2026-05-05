@@ -438,14 +438,36 @@ export function Dashboard({ onResetComplete }: DashboardProps) {
             </span>
           </div>
 
-          <div className="absolute left-3 right-3 top-14 z-10 h-2 overflow-hidden rounded-full bg-[#242949]">
+          <div className="absolute left-3 right-3 top-14 z-10 space-y-1.5">
+            <div className="h-2 overflow-hidden rounded-full bg-[#242949]">
+              <div
+                className="h-full rounded-full bg-violet-500 transition-all duration-300"
+                style={{ width: `${averageMastery * 100}%` }}
+                title="Average mastery across all tracked concepts"
+              />
+            </div>
             <div
-              className="h-full rounded-full bg-violet-500 transition-all duration-300"
-              style={{ width: `${averageMastery * 100}%` }}
-            />
+              className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border border-white/10 bg-[#11142a]/90 px-2 py-1.5 text-[10px] text-slate-400 backdrop-blur"
+              title="Each graph node is filled by that concept’s mastery score"
+            >
+              <span className="font-medium text-slate-300">Node fill = mastery:</span>
+              <span className="inline-flex items-center gap-1">
+                <span className="h-2.5 w-3.5 shrink-0 rounded-sm bg-[#10b981]" />
+                Green ≥70% (strong)
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <span className="h-2.5 w-3.5 shrink-0 rounded-sm bg-[#f59e0b]" />
+                Yellow 40–70% (building)
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <span className="h-2.5 w-3.5 shrink-0 rounded-sm bg-[#ef4444]" />
+                Red {"<"}40% (priority)
+              </span>
+              <span className="text-slate-500">· Dimmed = not on path to selected concept</span>
+            </div>
           </div>
 
-          <div className="relative h-full pt-20">
+          <div className="relative h-full pt-[6.25rem]">
             <GraphCanvas
               nodes={styledNodes}
               edges={styledEdges}

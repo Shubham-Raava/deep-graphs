@@ -3,6 +3,12 @@
 import type { Concept } from "../types/knowledgeGraph";
 import type { UserKnowledgeState } from "../types/knowledgeGraph";
 
+function masteryFillColor(mastery: number): string {
+  if (mastery >= 0.7) return "#10b981";
+  if (mastery >= 0.4) return "#f59e0b";
+  return "#ef4444";
+}
+
 type ConceptDetailsProps = {
   concept: Concept | null;
   prerequisites: Concept[];
@@ -59,15 +65,86 @@ export function ConceptDetails({
           </button>
 
           {knowledgeState && (
-            <section className="rounded-md border border-white/10 bg-[#161a34] p-3">
-              <h4 className="mb-2 font-medium text-slate-200">Knowledge Scores</h4>
-              <div className="space-y-1 text-slate-300">
-                <p>Mastery: {knowledgeState.mastery_score.toFixed(2)}</p>
-                <p>Exposure: {knowledgeState.exposure_score.toFixed(2)}</p>
-                <p>Confusion: {knowledgeState.confusion_score.toFixed(2)}</p>
+            <section className="rounded-lg border border-violet-400/30 bg-gradient-to-b from-violet-500/10 to-[#161a34] p-3 shadow-inner shadow-violet-950/20">
+              <h4 className="mb-3 text-sm font-semibold tracking-wide text-violet-100">
+                Scores for this concept
+              </h4>
+              <div className="grid gap-3">
+                <div className="rounded-md border border-emerald-500/35 bg-emerald-950/30 p-3 ring-1 ring-emerald-400/10">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-emerald-200/90">
+                      Mastery
+                    </span>
+                    <span
+                      className="text-2xl font-bold tabular-nums leading-none"
+                      style={{ color: masteryFillColor(knowledgeState.mastery_score) }}
+                    >
+                      {(knowledgeState.mastery_score * 100).toFixed(0)}%
+                    </span>
+                  </div>
+                  <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-black/35">
+                    <div
+                      className="h-full rounded-full transition-[width]"
+                      style={{
+                        width: `${Math.min(100, Math.max(0, knowledgeState.mastery_score * 100))}%`,
+                        backgroundColor: masteryFillColor(knowledgeState.mastery_score),
+                      }}
+                    />
+                  </div>
+                  <p className="mt-2 text-[11px] leading-snug text-slate-400">
+                    Same scale as node color on the graph: strong (green), building (yellow), or
+                    priority review (red).
+                  </p>
+                </div>
+
+                <div className="rounded-md border border-amber-500/35 bg-amber-950/25 p-3 ring-1 ring-amber-400/10">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-amber-200/90">
+                      Confusion
+                    </span>
+                    <span className="text-2xl font-bold tabular-nums leading-none text-amber-200">
+                      {(knowledgeState.confusion_score * 100).toFixed(0)}%
+                    </span>
+                  </div>
+                  <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-black/35">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-amber-500 to-rose-500 transition-[width]"
+                      style={{
+                        width: `${Math.min(100, Math.max(0, knowledgeState.confusion_score * 100))}%`,
+                      }}
+                    />
+                  </div>
+                  <p className="mt-2 text-[11px] leading-snug text-slate-400">
+                    Rises when you mark confusing or miss questions; high values mean spend more
+                    time here before advancing.
+                  </p>
+                </div>
+
+                <div className="rounded-md border border-violet-500/35 bg-violet-950/30 p-3 ring-1 ring-violet-400/10">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-violet-200/90">
+                      Exposure
+                    </span>
+                    <span className="text-2xl font-bold tabular-nums leading-none text-violet-200">
+                      {(knowledgeState.exposure_score * 100).toFixed(0)}%
+                    </span>
+                  </div>
+                  <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-black/35">
+                    <div
+                      className="h-full rounded-full bg-violet-500 transition-[width]"
+                      style={{
+                        width: `${Math.min(100, Math.max(0, knowledgeState.exposure_score * 100))}%`,
+                      }}
+                    />
+                  </div>
+                  <p className="mt-2 text-[11px] leading-snug text-slate-400">
+                    How much this concept has shown up in your sessions; use “Viewed” or quizzes to
+                    increase it.
+                  </p>
+                </div>
               </div>
 
-              <div className="mt-3 grid gap-2">
+              <div className="mt-4 grid gap-2">
                 <button
                   type="button"
                   onClick={() => onMarkUnderstood(concept.id)}
@@ -120,10 +197,28 @@ export function ConceptDetails({
           </section>
 
           <section className="rounded-md border border-white/10 bg-[#161a34] p-3">
-            <h4 className="mb-1 font-medium text-slate-200">Legend</h4>
-            <p className="text-slate-300">Node = Concept</p>
-            <p className="text-slate-300">Edge = Prerequisite</p>
-            <p className="mt-1 text-slate-300">Green/Yellow/Red = Mastery level</p>
+            <h4 className="mb-1 font-medium text-slate-200">Graph legend</h4>
+            <p className="text-slate-300">Node = concept</p>
+            <p className="text-slate-300">Edge = prerequisite (must come before)</p>
+            <p className="mt-2 text-xs font-medium text-slate-200">Node fill (mastery)</p>
+            <ul className="mt-1 space-y-1 text-xs text-slate-400">
+              <li className="flex items-center gap-2">
+                <span className="h-2.5 w-4 shrink-0 rounded-sm bg-[#10b981]" />
+                Green — mastery ≥70% (strong)
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="h-2.5 w-4 shrink-0 rounded-sm bg-[#f59e0b]" />
+                Yellow — mastery 40–70% (building)
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="h-2.5 w-4 shrink-0 rounded-sm bg-[#ef4444]" />
+                Red — mastery {"<"}40% (priority)
+              </li>
+              <li className="pt-1 text-slate-500">
+                Dimmed nodes are off the path to the selected concept, not a different mastery
+                color.
+              </li>
+            </ul>
           </section>
         </div>
       )}
