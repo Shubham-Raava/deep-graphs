@@ -5,7 +5,7 @@ import type {
   SkillCheckQuestion,
 } from "../types/knowledgeGraph";
 
-export const GRAPH_DATA_VERSION = "kg-v7-class9-rich-curriculum";
+export const GRAPH_DATA_VERSION = "kg-v8-interconnected-prereqs";
 
 type SeedFields = Omit<Concept, "id" | "exploreContent">;
 type Seed = SeedFields & { key: string };
@@ -34,7 +34,8 @@ function buildExploreContent(fields: SeedFields): string {
 
 /**
  * Class 9 only — many concepts grouped by chapter (topic).
- * Prerequisite edges stay within and lightly across topic bands per subject.
+ * Prerequisite edges form long spines plus hubs where one concept depends on several
+ * prerequisites (multiple incoming edges), especially in math, physics, chemistry, and civics.
  */
 const conceptSeeds: Seed[] = [
   // Math — Number Systems
@@ -666,6 +667,242 @@ const conceptSeeds: Seed[] = [
     subject: "social_science",
     chapter: "Civics — Elections",
   },
+
+  // Math — hubs & applications (many incoming edges on ma23–ma28)
+  {
+    key: "ma22",
+    name: "Algebraic Identities Intro",
+    description: "Expand (a ± b)² and a² − b² patterns before heavy factorisation.",
+    class: 9,
+    subject: "math",
+    chapter: "Polynomials",
+  },
+  {
+    key: "ma23",
+    name: "Graphical Solution of Linear Pairs",
+    description: "Read intersection of two lines as the simultaneous solution pair.",
+    class: 9,
+    subject: "math",
+    chapter: "Linear Equations in Two Variables",
+  },
+  {
+    key: "ma24",
+    name: "Area of Composite Plane Figures",
+    description: "Decompose irregular figures into triangles and rectangles.",
+    class: 9,
+    subject: "math",
+    chapter: "Heron’s Formula",
+  },
+  {
+    key: "ma25",
+    name: "Trigonometric Ratios in Right Triangles",
+    description: "sin, cos, tan for acute angles from side ratios.",
+    class: 9,
+    subject: "math",
+    chapter: "Introduction to Trigonometry",
+  },
+  {
+    key: "ma26",
+    name: "Tree Diagrams for Compound Events",
+    description: "Multiply branch probabilities for sequential experiments.",
+    class: 9,
+    subject: "math",
+    chapter: "Probability",
+  },
+  {
+    key: "ma27",
+    name: "Quadratic Patterns from Factorisation",
+    description: "Recognise x² + bx + c from product-sum of roots.",
+    class: 9,
+    subject: "math",
+    chapter: "Polynomials",
+  },
+  {
+    key: "ma28",
+    name: "Statistics from Coordinate Samples",
+    description: "Plot scatter intuition and read central tendency from plotted clouds.",
+    class: 9,
+    subject: "math",
+    chapter: "Statistics",
+  },
+
+  // Physics — merged prerequisites into problem-solving hubs
+  {
+    key: "ph15",
+    name: "Power and Efficiency",
+    description: "Relate useful output power to time and energy transfer rate.",
+    class: 9,
+    subject: "physics",
+    chapter: "Work and Energy",
+  },
+  {
+    key: "ph16",
+    name: "Collisions and Momentum Exchange",
+    description: "Combine impulse ideas with conservation sketches for simple crashes.",
+    class: 9,
+    subject: "physics",
+    chapter: "Force and Laws of Motion",
+  },
+  {
+    key: "ph17",
+    name: "Buoyancy and Archimedes’ Principle",
+    description: "Upthrust equals weight of displaced fluid in equilibrium cases.",
+    class: 9,
+    subject: "physics",
+    chapter: "Gravitation",
+  },
+  {
+    key: "ph18",
+    name: "Sonar and Echo Applications",
+    description: "Use speed–distance–time with reflected pulses in media.",
+    class: 9,
+    subject: "physics",
+    chapter: "Sound",
+  },
+  {
+    key: "ph19",
+    name: "Simple Machines and Mechanical Advantage",
+    description: "Levers and pulleys trade force against distance using work ideas.",
+    class: 9,
+    subject: "physics",
+    chapter: "Work and Energy",
+  },
+  {
+    key: "ph20",
+    name: "Energy Bar Diagrams",
+    description: "Track kinetic, potential, and dissipated energy across a process.",
+    class: 9,
+    subject: "physics",
+    chapter: "Work and Energy",
+  },
+
+  // Chemistry — reaction literacy hubs
+  {
+    key: "ch11",
+    name: "Types of Chemical Reactions",
+    description: "Combination, decomposition, displacement, double displacement patterns.",
+    class: 9,
+    subject: "chemistry",
+    chapter: "Chemical Reactions",
+  },
+  {
+    key: "ch12",
+    name: "Stoichiometry from Balanced Equations",
+    description: "Mole ratios from coefficients to predict masses consumed or formed.",
+    class: 9,
+    subject: "chemistry",
+    chapter: "Chemical Reactions",
+  },
+  {
+    key: "ch13",
+    name: "Acids Bases and Indicators",
+    description: "pH intuition, litmus behaviour, and salt formation at intro level.",
+    class: 9,
+    subject: "chemistry",
+    chapter: "Chemical Reactions",
+  },
+  {
+    key: "ch14",
+    name: "Carbon Allotropes and Versatility",
+    description: "Diamond vs graphite vs fullerene bonding pictures.",
+    class: 9,
+    subject: "chemistry",
+    chapter: "Chemical Bonding",
+  },
+
+  // Biology — physiology & applied hubs
+  {
+    key: "bi11",
+    name: "Cell Division Overview",
+    description: "Why cells divide and rough stages before detailed mitosis in later classes.",
+    class: 9,
+    subject: "biology",
+    chapter: "The Fundamental Unit of Life",
+  },
+  {
+    key: "bi12",
+    name: "Transport in Plants",
+    description: "Xylem and phloem roles linking tissues to whole-plant water movement.",
+    class: 9,
+    subject: "biology",
+    chapter: "Tissues",
+  },
+  {
+    key: "bi13",
+    name: "Nutrition in Animals",
+    description: "Digestion steps and villi absorption tied to tissue organisation.",
+    class: 9,
+    subject: "biology",
+    chapter: "Improvement in Food Resources",
+  },
+  {
+    key: "bi14",
+    name: "Disease Transmission Pathways",
+    description: "Air, water, vectors, and direct contact routes for infectious agents.",
+    class: 9,
+    subject: "biology",
+    chapter: "Why Do We Fall Ill",
+  },
+
+  // English — composition hubs
+  {
+    key: "en11",
+    name: "Structured Essay Writing",
+    description: "Thesis, body paragraphs with evidence, and conclusion discipline.",
+    class: 9,
+    subject: "english",
+    chapter: "Writing Skills",
+  },
+  {
+    key: "en12",
+    name: "Narrative Voice and Point of View",
+    description: "First vs third person and reliable vs unreliable narration cues.",
+    class: 9,
+    subject: "english",
+    chapter: "Literature",
+  },
+  {
+    key: "en13",
+    name: "Integrated Grammar in Long Answers",
+    description: "Blend tense agreement, modals, and clauses under exam word limits.",
+    class: 9,
+    subject: "english",
+    chapter: "Grammar — Mixed Review",
+  },
+
+  // Social science — synthesis nodes
+  {
+    key: "ss12",
+    name: "Primary Secondary Tertiary Sectors",
+    description: "Map livelihood types to India’s occupational structure.",
+    class: 9,
+    subject: "social_science",
+    chapter: "Economics — Sectors",
+  },
+  {
+    key: "ss13",
+    name: "Judiciary and Fundamental Rights",
+    description: "How courts protect Part III promises in everyday disputes.",
+    class: 9,
+    subject: "social_science",
+    chapter: "Civics — Constitution",
+  },
+  {
+    key: "ss14",
+    name: "Climate Change and Monsoon Risk",
+    description: "Link monsoon variability to floods, droughts, and farmer decisions.",
+    class: 9,
+    subject: "social_science",
+    chapter: "Geography — Climate",
+  },
+  {
+    key: "ss15",
+    name: "Democracy and Development Trade-offs",
+    description: "Growth goals vs inclusion, participation, and dissent in a democracy.",
+    class: 9,
+    subject: "social_science",
+    chapter: "Civics — Democracy",
+  },
 ];
 
 export const concepts: Concept[] = conceptSeeds.map((seed) => {
@@ -678,7 +915,7 @@ export const concepts: Concept[] = conceptSeeds.map((seed) => {
 });
 
 const relationshipSeeds: Array<[string, string]> = [
-  // Math — topic chains + light bridges
+  // Math — spine
   ["ma1", "ma2"],
   ["ma2", "ma3"],
   ["ma3", "ma4"],
@@ -699,7 +936,31 @@ const relationshipSeeds: Array<[string, string]> = [
   ["ma18", "ma19"],
   ["ma19", "ma20"],
   ["ma20", "ma21"],
-  // Physics
+  // Math — extra incoming edges (multi-prerequisite targets)
+  ["ma1", "ma7"],
+  ["ma9", "ma13"],
+  ["ma8", "ma10"],
+  ["ma12", "ma17"],
+  // Math — hub & application layer
+  ["ma4", "ma22"],
+  ["ma5", "ma22"],
+  ["ma22", "ma27"],
+  ["ma5", "ma27"],
+  ["ma6", "ma27"],
+  ["ma7", "ma23"],
+  ["ma8", "ma23"],
+  ["ma11", "ma24"],
+  ["ma12", "ma24"],
+  ["ma16", "ma24"],
+  ["ma11", "ma25"],
+  ["ma13", "ma25"],
+  ["ma10", "ma25"],
+  ["ma20", "ma26"],
+  ["ma21", "ma26"],
+  ["ma8", "ma28"],
+  ["ma19", "ma28"],
+  ["ma20", "ma28"],
+  // Physics — spine
   ["ph1", "ph2"],
   ["ph2", "ph3"],
   ["ph3", "ph4"],
@@ -713,7 +974,24 @@ const relationshipSeeds: Array<[string, string]> = [
   ["ph11", "ph12"],
   ["ph12", "ph13"],
   ["ph13", "ph14"],
-  // Chemistry
+  // Physics — merged prerequisites
+  ["ph6", "ph10"],
+  ["ph7", "ph10"],
+  ["ph4", "ph15"],
+  ["ph8", "ph15"],
+  ["ph3", "ph16"],
+  ["ph7", "ph16"],
+  ["ph6", "ph17"],
+  ["ph12", "ph17"],
+  ["ph11", "ph17"],
+  ["ph13", "ph18"],
+  ["ph14", "ph18"],
+  ["ph5", "ph19"],
+  ["ph8", "ph19"],
+  ["ph8", "ph20"],
+  ["ph9", "ph20"],
+  ["ph10", "ph20"],
+  // Chemistry — spine + merges
   ["ch1", "ch2"],
   ["ch2", "ch3"],
   ["ch3", "ch4"],
@@ -723,7 +1001,18 @@ const relationshipSeeds: Array<[string, string]> = [
   ["ch7", "ch8"],
   ["ch8", "ch10"],
   ["ch9", "ch10"],
-  // Biology
+  ["ch2", "ch10"],
+  ["ch2", "ch11"],
+  ["ch10", "ch11"],
+  ["ch4", "ch12"],
+  ["ch9", "ch12"],
+  ["ch10", "ch12"],
+  ["ch8", "ch13"],
+  ["ch10", "ch13"],
+  ["ch6", "ch14"],
+  ["ch8", "ch14"],
+  ["ch7", "ch14"],
+  // Biology — spine + merges
   ["bi1", "bi2"],
   ["bi2", "bi3"],
   ["bi3", "bi4"],
@@ -733,7 +1022,17 @@ const relationshipSeeds: Array<[string, string]> = [
   ["bi7", "bi8"],
   ["bi8", "bi9"],
   ["bi9", "bi10"],
-  // English
+  ["bi3", "bi9"],
+  ["bi1", "bi11"],
+  ["bi2", "bi11"],
+  ["bi2", "bi12"],
+  ["bi4", "bi12"],
+  ["bi3", "bi13"],
+  ["bi8", "bi13"],
+  ["bi5", "bi14"],
+  ["bi7", "bi14"],
+  ["bi9", "bi14"],
+  // English — spine + merges
   ["en1", "en2"],
   ["en2", "en3"],
   ["en3", "en4"],
@@ -743,7 +1042,17 @@ const relationshipSeeds: Array<[string, string]> = [
   ["en7", "en8"],
   ["en8", "en9"],
   ["en9", "en10"],
-  // Social science
+  ["en4", "en10"],
+  ["en5", "en11"],
+  ["en6", "en11"],
+  ["en8", "en11"],
+  ["en1", "en12"],
+  ["en8", "en12"],
+  ["en9", "en12"],
+  ["en2", "en13"],
+  ["en3", "en13"],
+  ["en4", "en13"],
+  // Social science — spine + merges
   ["ss1", "ss2"],
   ["ss2", "ss3"],
   ["ss3", "ss4"],
@@ -754,6 +1063,17 @@ const relationshipSeeds: Array<[string, string]> = [
   ["ss8", "ss9"],
   ["ss9", "ss10"],
   ["ss10", "ss11"],
+  ["ss5", "ss12"],
+  ["ss6", "ss12"],
+  ["ss9", "ss13"],
+  ["ss10", "ss13"],
+  ["ss5", "ss14"],
+  ["ss6", "ss14"],
+  ["ss7", "ss14"],
+  ["ss9", "ss15"],
+  ["ss11", "ss15"],
+  ["ss12", "ss15"],
+  ["ss2", "ss15"],
 ];
 
 const class9ConceptIds = new Set(concepts.map((c) => c.id));
