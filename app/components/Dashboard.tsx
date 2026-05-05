@@ -1,0 +1,599 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import {
+  type Edge,
+  type Node,
+  type OnNodesChange,
+  MarkerType,
+  Position,
+} from "@xyflow/react";
+import { ConceptDetails } from "./ConceptDetails";
+import { AssessmentDialog } from "./AssessmentDialog";
+import { GraphCanvas } from "./GraphCanvas";
+import { Sidebar } from "./Sidebar";
+import { scopeConceptsForGradeGraph } from "../lib/graphScope";
+import {
+  computeCoverageMetrics,
+  computeNextBestConcept,
+} from "../lib/graphLearningMetrics";
+import { useKnowledgeState } from "../hooks/useKnowledgeState";
+import type { Concept } from "../types/knowledgeGraph";
+
+type DashboardProps = {
+  onResetComplete: () => void;
+};
+
+function getMasteryColor(mastery: number) {
+  if (mastery >= 0.7) return "#10b981";
+  if (mastery >= 0.4) return "#f59e0b";
+  return "#ef4444";
+}
+
+function getNodePosition(index: number, total: number) {
+  const columns = Math.max(4, Math.ceil(Math.sqrt(Math.max(total, 1))));
+  const column = index % columns;
+  const row = Math.floor(index / columns);
+  return {
+    x: 80 + column * 190,
+    y: 120 + row * 140,
+  };
+}
+
+/** React Flow hides nodes until `node.width`/`node.height` exist (style.width is not enough). */
+const GRAPH_NODE_DIM = { width: 180, height: 88 };
+
+export function Dashboard({ onResetComplete }: DashboardProps) {
+  const [searchQuery, setSearchQuery] = useState("");
+  const {
+    concepts,
+    relationships,
+    knowledgeState,
+    learningEvents,
+    profile,
+    setProfile,
+    handleLearningEvent,
+    handleQuizAttempt,
+    resetAll,
+  } = useKnowledgeState();
+  const [selectedConceptId, setSelectedConceptId] = useState<string | null>(
+    () => concepts[0]?.id ?? null,
+  );
+  const [assessmentOpen, setAssessmentOpen] = useState(false);
+  const [nodePositions, setNodePositions] = useState<
+    Record<string, { x: number; y: number }>
+  >({});
+
+  const selectedClassNum = useMemo(
+    () => Number(profile.userClass.replace("class_", "")),
+    [profile.userClass],
+  );
+
+  const scopedConcepts = useMemo(
+    () =>
+      scopeConceptsForGradeGraph({
+        concepts,
+        relationships,
+        selectedClassNum,
+        selectedSubject: profile.userSubject,
+      }),
+    [concepts, relationships, profile.userSubject, selectedClassNum],
+  );
+
+  const filteredConcepts = useMemo(() => {
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+    if (!normalizedQuery) return scopedConcepts;
+    return scopedConcepts.filter((concept) =>
+      concept.name.toLowerCase().includes(normalizedQuery),
+    );
+  }, [scopedConcepts, searchQuery]);
+
+  const visibleConceptIds = useMemo(
+    () => new Set(filteredConcepts.map((concept) => concept.id)),
+    [filteredConcepts],
+  );
+
+  const visibleRelationships = useMemo(
+    () =>
+      relationships.filter(
+        (edge) => visibleConceptIds.has(edge.source) && visibleConceptIds.has(edge.target),
+      ),
+    [relationships, visibleConceptIds],
+  );
+
+  const effectiveSelectedConceptId = useMemo(() => {
+    if (selectedConceptId && visibleConceptIds.has(selectedConceptId)) {
+      return selectedConceptId;
+    }
+    return filteredConcepts[0]?.id ?? null;
+  }, [filteredConcepts, selectedConceptId, visibleConceptIds]);
+
+  const masteryByConceptId = useMemo(() => {
+    return knowledgeState.reduce<Record<string, number>>((acc, item) => {
+      acc[item.concept_id] = item.mastery_score;
+      return acc;
+    }, {});
+  }, [knowledgeState]);
+
+  const selectedConcept = useMemo(
+    () =>
+      filteredConcepts.find((concept) => concept.id === effectiveSelectedConceptId) ?? null,
+    [effectiveSelectedConceptId, filteredConcepts],
+  );
+
+  const prerequisiteIds = useMemo(
+    () =>
+      effectiveSelectedConceptId
+        ? visibleRelationships
+            .filter((item) => item.target === effectiveSelectedConceptId)
+            .map((item) => item.source)
+        : [],
+    [effectiveSelectedConceptId, visibleRelationships],
+  );
+
+  const dependentIds = useMemo(
+    () =>
+      effectiveSelectedConceptId
+        ? visibleRelationships
+            .filter((item) => item.source === effectiveSelectedConceptId)
+            .map((item) => item.target)
+        : [],
+    [effectiveSelectedConceptId, visibleRelationships],
+  );
+
+  const highlightedConceptIds = useMemo(
+    () =>
+      new Set([
+        ...prerequisiteIds,
+        ...dependentIds,
+        ...(effectiveSelectedConceptId ? [effectiveSelectedConceptId] : []),
+      ]),
+    [dependentIds, effectiveSelectedConceptId, prerequisiteIds],
+  );
+
+  const nodes = useMemo<Node[]>(() => {
+    const total = filteredConcepts.length;
+    return filteredConcepts.map((concept, index) => ({
+      id: concept.id,
+      data: { label: concept.name },
+      position: nodePositions[concept.id] ?? getNodePosition(index, total),
+    }));
+  }, [filteredConcepts, nodePositions]);
+
+  const styledNodes = useMemo(() => {
+    return nodes.map((node) => {
+      const concept = filteredConcepts.find((item) => item.id === node.id);
+      const mastery = masteryByConceptId[node.id] ?? 0.1;
+      const isSelected = node.id === effectiveSelectedConceptId;
+      const isConnected = highlightedConceptIds.has(node.id);
+      const hasSelection = effectiveSelectedConceptId !== null;
+
+      const focal = concept?.class === selectedClassNum;
+      const label =
+        concept == null ? node.id : focal ? concept.name : `${concept.name}\n(prerequisite)`;
+
+      return {
+        ...node,
+        width: GRAPH_NODE_DIM.width,
+        height: GRAPH_NODE_DIM.height,
+        measured: {
+          width: GRAPH_NODE_DIM.width,
+          height: GRAPH_NODE_DIM.height,
+        },
+        handles: [
+          {
+            id: "in",
+            type: "target" as const,
+            position: Position.Top,
+            x: GRAPH_NODE_DIM.width / 2,
+            y: 0,
+          },
+          {
+            id: "out",
+            type: "source" as const,
+            position: Position.Bottom,
+            x: GRAPH_NODE_DIM.width / 2,
+            y: GRAPH_NODE_DIM.height,
+          },
+        ],
+        data: {
+          label,
+          description: concept?.description ?? "",
+        },
+        style: {
+          borderRadius: 12,
+          border: `1px solid ${isSelected ? "#ddd6fe" : "#6d28d9"}`,
+          background: getMasteryColor(mastery),
+          color: "#f8fafc",
+          padding: 10,
+          width: GRAPH_NODE_DIM.width,
+          height: GRAPH_NODE_DIM.height,
+          whiteSpace: "pre-line",
+          textAlign: "center" as const,
+          boxShadow: isSelected
+            ? "0 0 0 3px rgba(167,139,250,0.45)"
+            : "0 2px 14px rgba(2,6,23,0.35)",
+          opacity: hasSelection && !isConnected ? 0.38 : 1,
+          transition:
+            "background-color 250ms ease, border-color 180ms ease, opacity 180ms ease",
+        },
+      };
+    });
+  }, [
+    effectiveSelectedConceptId,
+    filteredConcepts,
+    highlightedConceptIds,
+    masteryByConceptId,
+    nodes,
+    selectedClassNum,
+  ]);
+
+  const styledEdges = useMemo<Edge[]>(() => {
+    const hasSelection = effectiveSelectedConceptId !== null;
+
+    return visibleRelationships.map((item) => {
+      const isHighlighted =
+        item.source === effectiveSelectedConceptId ||
+        item.target === effectiveSelectedConceptId;
+      return {
+        id: `${item.source}-${item.target}`,
+        source: item.source,
+        target: item.target,
+        animated: isHighlighted,
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+          width: 16,
+          height: 16,
+          color: isHighlighted ? "#ddd6fe" : "#818cf8",
+        },
+        style: {
+          stroke: isHighlighted ? "#ddd6fe" : "#818cf8",
+          strokeWidth: isHighlighted ? 2.75 : 2,
+          opacity: hasSelection && !isHighlighted ? 0.45 : 0.98,
+          transition: "all 180ms ease",
+        },
+        interactionWidth: 28,
+        zIndex: 1,
+      };
+    });
+  }, [effectiveSelectedConceptId, visibleRelationships]);
+
+  const selectedKnowledge = useMemo(
+    () =>
+      knowledgeState.find((item) => item.concept_id === effectiveSelectedConceptId) ?? null,
+    [effectiveSelectedConceptId, knowledgeState],
+  );
+
+  const prerequisites = useMemo(
+    () => filteredConcepts.filter((concept) => prerequisiteIds.includes(concept.id)),
+    [filteredConcepts, prerequisiteIds],
+  );
+
+  const dependents = useMemo(
+    () => filteredConcepts.filter((concept) => dependentIds.includes(concept.id)),
+    [filteredConcepts, dependentIds],
+  );
+
+  const averageMastery = useMemo(() => {
+    if (knowledgeState.length === 0) return 0;
+    const total = knowledgeState.reduce((acc, item) => acc + item.mastery_score, 0);
+    return total / knowledgeState.length;
+  }, [knowledgeState]);
+
+  const handleEvent = (conceptId: string, eventType: "understood" | "confusing" | "view") => {
+    handleLearningEvent(conceptId, eventType);
+  };
+
+  const weakConcept = useMemo((): Concept | null => {
+    if (filteredConcepts.length === 0) return null;
+    let best: { concept: Concept; weaknessScore: number } | null = null;
+
+    for (const concept of filteredConcepts) {
+      const state = knowledgeState.find((item) => item.concept_id === concept.id);
+      if (!state) continue;
+      const weaknessScore = state.mastery_score - state.confusion_score;
+      if (!best || weaknessScore < best.weaknessScore) {
+        best = { concept, weaknessScore };
+      }
+    }
+
+    return best?.concept ?? null;
+  }, [filteredConcepts, knowledgeState]);
+
+  const weakPrerequisites = useMemo(() => {
+    return prerequisites.filter((concept) => {
+      const state = knowledgeState.find((item) => item.concept_id === concept.id);
+      return (state?.mastery_score ?? 0) < 0.5;
+    });
+  }, [knowledgeState, prerequisites]);
+
+  const coverageMetrics = useMemo(
+    () =>
+      computeCoverageMetrics(
+        scopedConcepts,
+        knowledgeState,
+        selectedClassNum,
+        relationships,
+      ),
+    [knowledgeState, relationships, scopedConcepts, selectedClassNum],
+  );
+
+  const nextBest = useMemo(
+    () =>
+      computeNextBestConcept(
+        scopedConcepts,
+        relationships,
+        knowledgeState,
+        selectedClassNum,
+      ),
+    [knowledgeState, relationships, scopedConcepts, selectedClassNum],
+  );
+
+  const weakConceptList = useMemo(() => {
+    return filteredConcepts
+      .map((concept) => {
+        const state = knowledgeState.find((item) => item.concept_id === concept.id);
+        return {
+          concept,
+          mastery: state?.mastery_score ?? 0,
+        };
+      })
+      .sort((a, b) => a.mastery - b.mastery)
+      .slice(0, 3);
+  }, [filteredConcepts, knowledgeState]);
+
+  const recentEvents = useMemo(() => {
+    return [...learningEvents]
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .slice(0, 8);
+  }, [learningEvents]);
+
+  const tutorSuggestion = useMemo(() => {
+    if (!selectedConcept) return "Select a concept to get adaptive guidance.";
+
+    const weakMessage = weakConcept
+      ? `Weakest concept currently: ${weakConcept.name}.`
+      : "No weak concept detected yet.";
+    const prereqMessage = weakPrerequisites.length
+      ? `You should revise ${weakPrerequisites.map((item) => item.name).join(", ")} first.`
+      : prerequisites.length > 0
+        ? "Prerequisites look stable. Continue practice."
+        : "This concept has no prerequisite in the current graph.";
+
+    return `${weakMessage} For ${selectedConcept.name}, ${prereqMessage}`;
+  }, [prerequisites.length, selectedConcept, weakConcept, weakPrerequisites]);
+
+  const handleNodesChange: OnNodesChange<Node> = (changes) => {
+    setNodePositions((current) => {
+      const next = { ...current };
+      changes.forEach((change) => {
+        if (change.type === "position" && change.position) {
+          next[change.id] = change.position;
+        }
+      });
+      return next;
+    });
+  };
+
+  const handleReset = () => {
+    resetAll();
+    onResetComplete();
+  };
+
+  return (
+    <main className="h-screen w-screen overflow-hidden bg-[#090d1a] text-slate-100">
+      <section className="grid h-full grid-rows-[240px_1fr_360px] lg:grid-cols-[280px_1fr_420px] lg:grid-rows-1">
+        <Sidebar
+          concepts={filteredConcepts}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          selectedConceptId={effectiveSelectedConceptId}
+          onSelectConcept={(conceptId) => {
+            setSelectedConceptId(conceptId);
+            handleEvent(conceptId, "view");
+          }}
+          masteryByConceptId={masteryByConceptId}
+        />
+
+        <div className="relative h-full min-h-0 border-y border-white/10 bg-[#0b1020] lg:border-x lg:border-y-0">
+          <div className="absolute left-3 right-3 top-3 z-10 flex flex-wrap items-center justify-between gap-3 rounded-md border border-white/10 bg-[#11142a]/90 px-3 py-2 text-xs backdrop-blur">
+            <div className="flex items-center gap-2">
+              <select
+                value={profile.userClass}
+                onChange={(event) => {
+                  const nextClass = event.target.value;
+                  setProfile({ ...profile, userClass: nextClass });
+                }}
+                className="rounded border border-white/20 bg-[#161a34] px-2 py-1 text-slate-200"
+              >
+                <option value="class_9">Class 9</option>
+              </select>
+              <select
+                value={profile.userSubject}
+                onChange={(event) => {
+                  const nextSubject = event.target.value;
+                  setProfile({ ...profile, userSubject: nextSubject });
+                }}
+                className="rounded border border-white/20 bg-[#161a34] px-2 py-1 capitalize text-slate-200"
+              >
+                <option value="all">All Subjects</option>
+                <option value="math">Math</option>
+                <option value="physics">Physics</option>
+                <option value="chemistry">Chemistry</option>
+                <option value="biology">Biology</option>
+                <option value="english">English</option>
+                <option value="social_science">Social science</option>
+              </select>
+              <div className="flex flex-col gap-0.5">
+                <span className="text-slate-300">{filteredConcepts.length} concepts</span>
+                <span className="text-[10px] font-normal text-slate-500">
+                  Class {selectedClassNum} focal topics • prerequisite trail stays on-graph (same{" "}
+                  {profile.userSubject === "all" ? "filters" : "subject"})
+                </span>
+              </div>
+            </div>
+            <span className="text-violet-200">
+              Avg mastery: {(averageMastery * 100).toFixed(0)}% | Events:{" "}
+              {learningEvents.length}
+            </span>
+          </div>
+
+          <div className="absolute left-3 right-3 top-14 z-10 h-2 overflow-hidden rounded-full bg-[#242949]">
+            <div
+              className="h-full rounded-full bg-violet-500 transition-all duration-300"
+              style={{ width: `${averageMastery * 100}%` }}
+            />
+          </div>
+
+          <div className="h-full pt-20">
+            <GraphCanvas
+              nodes={styledNodes}
+              edges={styledEdges}
+              onNodeClick={(conceptId) => {
+                setSelectedConceptId(conceptId);
+                handleEvent(conceptId, "view");
+              }}
+              onNodesChange={handleNodesChange}
+            />
+          </div>
+        </div>
+
+        <div className="flex h-full min-h-0 flex-col border-t border-white/10 bg-[#11142a] lg:border-t-0 lg:border-l">
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <ConceptDetails
+              concept={selectedConcept}
+              prerequisites={prerequisites}
+              dependents={dependents}
+              knowledgeState={selectedKnowledge}
+              onMarkUnderstood={(conceptId) =>
+                handleEvent(conceptId, "understood")
+              }
+              onMarkConfusing={(conceptId) =>
+                handleEvent(conceptId, "confusing")
+              }
+              onViewedConcept={(conceptId) => handleEvent(conceptId, "view")}
+              onOpenAssessment={(conceptId) => {
+                setSelectedConceptId(conceptId);
+                setAssessmentOpen(true);
+              }}
+            />
+
+            <div className="space-y-3 border-t border-white/10 bg-[#11142a] p-4">
+              {weakPrerequisites.length > 0 && selectedConcept && (
+                <section className="rounded-md border border-amber-400/30 bg-amber-500/10 p-3">
+                  <h4 className="mb-1 text-sm font-medium text-amber-200">
+                    Prerequisite Warning
+                  </h4>
+                  <p className="text-xs text-amber-100">
+                    Before learning {selectedConcept.name}, revise{" "}
+                    {weakPrerequisites.map((item) => item.name).join(", ")}.
+                  </p>
+                </section>
+              )}
+
+              <section className="rounded-md border border-emerald-400/25 bg-emerald-950/25 p-3">
+                <h4 className="mb-2 text-sm font-medium text-emerald-200">Graph coverage</h4>
+                <ul className="space-y-1 text-xs leading-relaxed text-slate-300">
+                  <li>
+                    Engaged concepts: {coverageMetrics.engagedPercent}% (
+                    {coverageMetrics.engagedCount}/{coverageMetrics.totalInScope})
+                  </li>
+                  <li>Never engaged (low exposure): {coverageMetrics.neverEngagedCount}</li>
+                  {coverageMetrics.blockingPrerequisiteNames.length > 0 ? (
+                    <li className="text-amber-100/95">
+                      Weak prerequisites blocking focal topics:{" "}
+                      {coverageMetrics.blockingPrerequisiteNames.join(", ")}
+                    </li>
+                  ) : (
+                    <li className="text-slate-500">No weak prerequisite blockers on focal nodes.</li>
+                  )}
+                </ul>
+              </section>
+
+              <section className="rounded-md border border-violet-400/30 bg-[#1a1630] p-3">
+                <h4 className="mb-2 text-sm font-medium text-violet-200">Next best concept</h4>
+                {nextBest ? (
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-slate-100">{nextBest.concept.name}</p>
+                    <p className="text-[11px] leading-relaxed text-slate-400">{nextBest.reason}</p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchQuery("");
+                        setSelectedConceptId(nextBest.concept.id);
+                        handleEvent(nextBest.concept.id, "view");
+                      }}
+                      className="w-full rounded-md bg-violet-600 px-3 py-2 text-xs font-medium text-white transition hover:bg-violet-500"
+                    >
+                      Study this concept
+                    </button>
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-500">No suggestion in this scope yet.</p>
+                )}
+              </section>
+
+              <section className="rounded-md border border-white/10 bg-[#161a34] p-3">
+                <h4 className="mb-2 text-sm font-medium text-violet-200">Adaptive Tutor Note</h4>
+                <p className="text-xs text-slate-300">{tutorSuggestion}</p>
+                {weakConceptList.length > 0 && (
+                  <div className="mt-3">
+                    <p className="mb-1 text-xs text-slate-400">Weak concepts (current scope):</p>
+                    <ul className="space-y-1 text-xs text-slate-300">
+                      {weakConceptList.map((item) => (
+                        <li key={item.concept.id}>
+                          • {item.concept.name} ({(item.mastery * 100).toFixed(0)}%)
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </section>
+
+              <section className="rounded-md border border-indigo-400/25 bg-[#161c36] p-3">
+                <h4 className="mb-1 text-sm font-medium text-indigo-200">Assessment</h4>
+                <p className="text-[11px] leading-relaxed text-slate-400">
+                  Tap <strong className="text-slate-200">Start AI assessment</strong> on the concept
+                  card. Gemini drafts ~6 MCQs for that topic only; submitting sends answers back for a
+                  score and a personalized study plan based on misses.
+                </p>
+              </section>
+
+              <section className="rounded-md border border-white/10 bg-[#161a34] p-3">
+                <h4 className="mb-2 text-sm font-medium text-slate-100">Recent Learning Events</h4>
+                {recentEvents.length === 0 ? (
+                  <p className="text-xs text-slate-400">No events yet.</p>
+                ) : (
+                  <ul className="space-y-1 text-xs text-slate-300">
+                    {recentEvents.map((event, index) => (
+                      <li key={`${event.concept_id}-${event.timestamp}-${index}`}>
+                        • {event.event_type} on {event.concept_id}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+            </div>
+          </div>
+
+          <div className="shrink-0 border-t border-white/10 bg-[#11142a] p-4">
+            <button
+              type="button"
+              onClick={handleReset}
+              className="w-full rounded-md border border-rose-400/40 bg-rose-500/10 px-3 py-2 text-sm text-rose-100 transition hover:bg-rose-500/20"
+            >
+              Reset Progress
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <AssessmentDialog
+        open={assessmentOpen}
+        onOpenChange={setAssessmentOpen}
+        concept={selectedConcept}
+        onAttemptRecorded={(payload) => handleQuizAttempt(payload)}
+      />
+    </main>
+  );
+}
