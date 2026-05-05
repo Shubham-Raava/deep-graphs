@@ -24,6 +24,68 @@ type FeedbackPayload = {
   encouragement: string;
 };
 
+type QuizResultRow = {
+  questionId: string;
+  prompt: string;
+  chosen: string | null;
+  correctAnswer: string;
+  wasCorrect: boolean;
+  subtopic?: string;
+};
+
+/** Always-available revision note built from misses (used if Gemini is slow or fails). */
+function buildLocalPostQuizFeedback(
+  concept: Concept,
+  results: QuizResultRow[],
+  pct: number,
+): FeedbackPayload {
+  const misses = results.filter((r) => !r.wasCorrect);
+  const weakAreas = misses.map((r) => {
+    const st = r.subtopic?.trim();
+    if (st) return st;
+    return r.prompt.length > 80 ? `${r.prompt.slice(0, 80)}…` : r.prompt;
+  });
+  const uniqueWeak = [...new Set(weakAreas)].slice(0, 10);
+
+  const missedBullets =
+    misses.length === 0
+      ? [
+          "• No misses — skim prerequisites on the graph anyway so the next topic stays easy.",
+        ]
+      : misses.map((r) => {
+          const head = r.subtopic ? `${r.subtopic}: ` : "";
+          const body = r.prompt.length > 120 ? `${r.prompt.slice(0, 120)}…` : r.prompt;
+          return `• ${head}${body}`;
+        });
+
+  const personalizedPlan = [
+    `Score: ${pct.toFixed(0)}% on “${concept.name}” (${concept.chapter}).`,
+    "",
+    "What looks weakest right now",
+    ...missedBullets,
+    "",
+    "What to revise next (concrete)",
+    "1) Re-read the Explore section for this concept and write definitions in your own words.",
+    "2) For each bullet above, redo one similar example from your textbook or notes.",
+    "3) If a miss names a sub-topic, search that phrase in your notes and add one worked example.",
+    "4) When ready, run ★ Start assessment again on this node or a prerequisite the graph highlights.",
+  ].join("\n");
+
+  const encouragement =
+    pct >= 85
+      ? "Strong round — polish the few gaps above and you will lock this topic in."
+      : pct >= 60
+        ? "Good foundation — the bullets above are your fastest review queue."
+        : "Treat this as a map, not a verdict — follow the steps and your next attempt will climb.";
+
+  return {
+    weakAreas:
+      uniqueWeak.length > 0 ? uniqueWeak : ["Overall understanding — follow the checklist below"],
+    personalizedPlan,
+    encouragement,
+  };
+}
+
 export function AssessmentDialog({
   open,
   onOpenChange,
@@ -45,6 +107,7 @@ export function AssessmentDialog({
     modelUsed?: string;
     questionsFingerprint?: string;
   }>({});
+  const [quizResults, setQuizResults] = useState<QuizResultRow[]>([]);
 
   const resetDialogUi = useCallback(() => {
     setPhase("idle");
@@ -57,6 +120,7 @@ export function AssessmentDialog({
     setFeedbackLoading(false);
     setGenerationKey(0);
     setGenerationMeta({});
+    setQuizResults([]);
   }, []);
 
   useEffect(() => {
@@ -72,6 +136,7 @@ export function AssessmentDialog({
       setScore(null);
       setFeedback(null);
       setQuestions([]);
+      setQuizResults([]);
       setGenerationMeta({});
       try {
         const res = await fetch("/api/gemini-assessment", {
@@ -140,7 +205,7 @@ export function AssessmentDialog({
     if (!concept || questions.length === 0 || !startedAt) return;
 
     let correct = 0;
-    const results = questions.map((q) => {
+    const results: QuizResultRow[] = questions.map((q) => {
       const chosen = answers[q.id] ?? null;
       const wasCorrect = chosen !== null && chosen === q.correctAnswer;
       if (wasCorrect) correct += 1;
@@ -153,6 +218,7 @@ export function AssessmentDialog({
         subtopic: q.subtopic,
       };
     });
+    setQuizResults(results);
 
     const total = questions.length;
     const pct = total > 0 ? (correct / total) * 100 : 0;
@@ -210,27 +276,36 @@ export function AssessmentDialog({
         }),
       });
       const data = (await res.json()) as FeedbackPayload & { error?: string };
+      const localFb = buildLocalPostQuizFeedback(concept, results, pct);
       if (res.ok) {
+        const aiWeak = data.weakAreas ?? [];
+        const aiPlan = (data.personalizedPlan ?? "").trim();
+        const aiEnc = (data.encouragement ?? "").trim();
         setFeedback({
-          weakAreas: data.weakAreas ?? [],
-          personalizedPlan: data.personalizedPlan ?? "",
-          encouragement: data.encouragement ?? "",
+          weakAreas: aiWeak.length
+            ? [...new Set([...aiWeak, ...localFb.weakAreas])].slice(0, 12)
+            : localFb.weakAreas,
+          personalizedPlan:
+            aiPlan.length >= 60
+              ? `${aiPlan}\n\n---\nFrom your quiz misses (always shown)\n${localFb.personalizedPlan}`
+              : `${localFb.personalizedPlan}${aiPlan ? `\n\n(Gemini add-on)\n${aiPlan}` : ""}`,
+          encouragement: aiEnc || localFb.encouragement,
         });
       } else {
         setFeedback({
-          weakAreas: [],
-          personalizedPlan:
+          weakAreas: localFb.weakAreas,
+          personalizedPlan: [
+            localFb.personalizedPlan,
+            "",
+            "Gemini note unavailable:",
             data.error ??
-            "Could not load AI learning plan right now — check GEMINI_API_KEY and try again.",
-          encouragement: "Nice effort finishing the quiz.",
+              "Check GEMINI_API_KEY in .env.local and restart next dev — the checklist above still applies.",
+          ].join("\n"),
+          encouragement: localFb.encouragement,
         });
       }
     } catch {
-      setFeedback({
-        weakAreas: [],
-        personalizedPlan: "Something went wrong loading personalized feedback.",
-        encouragement: "",
-      });
+      setFeedback(buildLocalPostQuizFeedback(concept, results, pct));
     } finally {
       setFeedbackLoading(false);
     }
@@ -354,6 +429,27 @@ export function AssessmentDialog({
                 </p>
               </div>
 
+              {quizResults.some((r) => !r.wasCorrect) && (
+                <div className="rounded-lg border border-rose-400/25 bg-rose-950/30 p-3">
+                  <p className="mb-2 text-xs font-medium text-rose-100">Questions to revisit</p>
+                  <ul className="max-h-40 space-y-2 overflow-y-auto text-xs text-slate-200">
+                    {quizResults
+                      .filter((r) => !r.wasCorrect)
+                      .map((r) => (
+                        <li key={r.questionId} className="rounded border border-white/10 bg-black/20 p-2">
+                          {r.subtopic && (
+                            <p className="mb-0.5 text-[10px] font-medium text-amber-200/95">{r.subtopic}</p>
+                          )}
+                          <p className="text-slate-300">{r.prompt}</p>
+                          <p className="mt-1 text-[10px] text-slate-500">
+                            Your answer: {r.chosen ?? "(none)"} · Correct: {r.correctAnswer}
+                          </p>
+                        </li>
+                      ))}
+                  </ul>
+                </div>
+              )}
+
               {feedbackLoading && (
                 <p className="text-xs text-slate-400">
                   Gemini is drafting weak spots and a personalized learning plan…
@@ -361,31 +457,32 @@ export function AssessmentDialog({
               )}
 
               {feedback && (
-                <>
+                <div className="rounded-lg border border-violet-400/30 bg-violet-950/25 p-3">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-violet-200/95">
+                    Tutor note — weak parts & what to revise
+                  </p>
                   {feedback.encouragement && (
-                    <p className="text-xs text-violet-200">{feedback.encouragement}</p>
+                    <p className="mb-3 text-xs text-violet-100">{feedback.encouragement}</p>
                   )}
                   {feedback.weakAreas.length > 0 && (
-                    <div>
-                      <p className="mb-1 text-xs font-medium text-amber-200">Likely weak areas</p>
+                    <div className="mb-3">
+                      <p className="mb-1 text-xs font-medium text-amber-200">Weak areas (topics / skills)</p>
                       <ul className="list-inside list-disc space-y-0.5 text-xs text-slate-300">
-                        {feedback.weakAreas.map((w) => (
-                          <li key={w}>{w}</li>
+                        {feedback.weakAreas.map((w, i) => (
+                          <li key={`${i}-${w.slice(0, 48)}`}>{w}</li>
                         ))}
                       </ul>
                     </div>
                   )}
                   {feedback.personalizedPlan && (
                     <div>
-                      <p className="mb-1 text-xs font-medium text-violet-200">
-                        Personalized learning plan
-                      </p>
+                      <p className="mb-1 text-xs font-medium text-slate-200">Personalized plan</p>
                       <p className="whitespace-pre-line text-xs leading-relaxed text-slate-300">
                         {feedback.personalizedPlan}
                       </p>
                     </div>
                   )}
-                </>
+                </div>
               )}
             </div>
           )}

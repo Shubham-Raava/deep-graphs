@@ -445,7 +445,7 @@ export function Dashboard({ onResetComplete }: DashboardProps) {
             />
           </div>
 
-          <div className="h-full pt-20">
+          <div className="relative h-full pt-20">
             <GraphCanvas
               nodes={styledNodes}
               edges={styledEdges}
@@ -453,8 +453,35 @@ export function Dashboard({ onResetComplete }: DashboardProps) {
                 setSelectedConceptId(conceptId);
                 handleEvent(conceptId, "view");
               }}
+              onNodeDoubleClick={(conceptId) => {
+                setSelectedConceptId(conceptId);
+                handleEvent(conceptId, "view");
+                setAssessmentOpen(true);
+              }}
               onNodesChange={handleNodesChange}
             />
+            {selectedConcept && (
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center px-3 pb-3 pt-8 bg-gradient-to-t from-[#0b1020] via-[#0b1020]/95 to-transparent">
+                <div className="pointer-events-auto flex w-full max-w-2xl flex-wrap items-center justify-between gap-2 rounded-lg border border-indigo-400/35 bg-[#12162c]/95 px-3 py-2.5 shadow-lg shadow-black/40 backdrop-blur">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] font-medium uppercase tracking-wide text-indigo-200/90">
+                      Selected concept
+                    </p>
+                    <p className="truncate text-sm font-semibold text-white">{selectedConcept.name}</p>
+                    <p className="truncate text-[10px] text-slate-500">
+                      {selectedConcept.chapter} · {selectedConcept.subject}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setAssessmentOpen(true)}
+                    className="shrink-0 rounded-md bg-gradient-to-r from-indigo-500 to-violet-600 px-4 py-2 text-xs font-semibold text-white shadow-md shadow-indigo-900/40 transition hover:from-indigo-400 hover:to-violet-500"
+                  >
+                    ★ Start assessment
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -553,9 +580,11 @@ export function Dashboard({ onResetComplete }: DashboardProps) {
               <section className="rounded-md border border-indigo-400/25 bg-[#161c36] p-3">
                 <h4 className="mb-1 text-sm font-medium text-indigo-200">Assessment</h4>
                 <p className="text-[11px] leading-relaxed text-slate-400">
-                  Tap <strong className="text-slate-200">Start AI assessment</strong> on the concept
-                  card. Gemini drafts ~6 MCQs for that topic only; submitting sends answers back for a
-                  score and a personalized study plan based on misses.
+                  Use <strong className="text-slate-200">★ Start assessment</strong> on the graph bar
+                  (bottom), <strong className="text-slate-200">double-click a node</strong> to jump
+                  straight in, or the same button on the concept card. After submit you get missed
+                  questions listed plus a <strong className="text-slate-200">tutor note</strong> (AI +
+                  a checklist from your wrong answers).
                 </p>
               </section>
 

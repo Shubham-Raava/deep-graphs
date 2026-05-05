@@ -246,8 +246,8 @@ ${lines}
 
 Return ONLY valid JSON:
 {
-  "weakAreas": ["short bullet", "..."],
-  "personalizedPlan": "2-4 short paragraphs: what to study next, in what order, with concrete actions",
+  "weakAreas": ["2-6 short bullets naming the skill or subtopic behind each miss"],
+  "personalizedPlan": "Use clear sections in plain text (no markdown): (1) weakest areas in one sentence each, (2) what to revise first and why, (3) 3-5 numbered concrete actions the student can do today, (4) one sentence on which prerequisite ideas to strengthen if any misses look foundational.",
   "encouragement": "one short warm sentence"
 }`;
 

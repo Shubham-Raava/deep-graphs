@@ -19,6 +19,8 @@ type GraphCanvasProps = {
   nodes: Node[];
   edges: Edge[];
   onNodeClick: (conceptId: string) => void;
+  /** Optional: e.g. open assessment without hunting the side panel. */
+  onNodeDoubleClick?: (conceptId: string) => void;
   onNodesChange: OnNodesChange<Node>;
 };
 
@@ -26,6 +28,7 @@ function GraphCanvasInner({
   nodes,
   edges,
   onNodeClick,
+  onNodeDoubleClick,
   onNodesChange,
 }: GraphCanvasProps) {
   const { fitView } = useReactFlow();
@@ -67,6 +70,9 @@ function GraphCanvasInner({
         edges={edges}
         onNodesChange={onNodesChange}
         onNodeClick={(_, node) => onNodeClick(node.id)}
+        onNodeDoubleClick={
+          onNodeDoubleClick ? (_, node) => onNodeDoubleClick(node.id) : undefined
+        }
         defaultEdgeOptions={{ type: "smoothstep" }}
         fitView
         minZoom={0.1}

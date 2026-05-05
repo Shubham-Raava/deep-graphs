@@ -53,9 +53,9 @@ export function ConceptDetails({
           <button
             type="button"
             onClick={() => onOpenAssessment(concept.id)}
-            className="w-full rounded-md border border-indigo-300/40 bg-indigo-500/15 px-3 py-2.5 text-left text-xs font-medium text-indigo-100 transition hover:bg-indigo-500/25"
+            className="w-full rounded-md border-2 border-indigo-400/60 bg-gradient-to-r from-indigo-500/25 to-violet-600/20 px-3 py-3 text-left text-sm font-semibold text-indigo-50 shadow-md shadow-indigo-950/30 transition hover:border-indigo-300 hover:from-indigo-500/35 hover:to-violet-600/30"
           >
-            Start AI assessment — opens dialog (Gemini · ~6 MCQs)
+            ★ Start assessment — Gemini quiz + personalized note after submit
           </button>
 
           {knowledgeState && (
